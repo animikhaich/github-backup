@@ -1,10 +1,10 @@
 # GitHub Account Mirroring & Backup
 
 This repository contains a GitHub Action workflow that automatically mirrors your entire GitHub account (all repositories, branches, tags) to:
-1.  **GitLab**: For hot failover/mirroring.
+1.  **GitLab**: For active mirroring.
 2.  **AWS S3**: For cold storage/archival (as bare git repositories).
 
-The workflow runs daily at midnight (`0 0 * * *`) or can be triggered manually.
+The workflow runs daily at midnight UTC (`0 0 * * *` in GitHub Actions) or can be triggered manually.
 
 ## Features
 
@@ -34,9 +34,10 @@ Go to `Settings` -> `Secrets and variables` -> `Actions` -> `Variables` -> `New 
 | :--- | :--- |
 | `GITLAB_USER_OR_GROUP` | The GitLab username or group/namespace where repositories should be mirrored (e.g., `my-backup-group`). |
 | `S3_BUCKET_NAME` | The name of the AWS S3 bucket to sync to (e.g., `my-github-backup-vault`). |
+| `AWS_REGION` | (Optional) The AWS region where your S3 bucket is located (e.g., `us-east-1`, `eu-west-1`). Defaults to `us-east-1` if not set. |
 
 ### 3. AWS S3 Setup
-Ensure your S3 bucket exists and is private. The `AWS_ACCESS_KEY_ID` user must have permissions to write to this bucket.
+Ensure your S3 bucket exists, is private, and that its region matches the value you configure in `AWS_REGION` (the example workflow defaults to `us-east-1`). The `AWS_ACCESS_KEY_ID` user must have permissions to write to this bucket.
 
 ## Architecture
 
@@ -59,6 +60,12 @@ Ensure your S3 bucket exists and is private. The `AWS_ACCESS_KEY_ID` user must h
 
 To restore a repository from S3:
 ```bash
+# Sync the bare repository from S3
 aws s3 sync s3://your-bucket-name/repo-name.git local-repo.git
+
+# Clone from the local bare repository
 git clone local-repo.git restored-repo
+
+# OR create a mirror clone to preserve all refs
+git clone --mirror local-repo.git restored-repo-mirror.git
 ```
