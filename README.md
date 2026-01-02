@@ -2,15 +2,19 @@
 
 This repository contains a GitHub Action workflow that automatically mirrors your entire GitHub account (all repositories, branches, tags) to:
 1.  **GitLab**: For active mirroring.
-2.  **AWS S3**: For cold storage/archival (as bare git repositories).
+2.  **AWS S3**: For cold storage/archival (both as bare git repositories and as extracted source code).
 
-The workflow runs daily at midnight UTC (`0 0 * * *` in GitHub Actions) or can be triggered manually.
+The workflow runs daily at midnight UTC (`0 0 */2 * *` in GitHub Actions) or can be triggered manually.
 
 ## Features
 
 -   **Comprehensive Backup:** Backs up all public and private repositories of the authenticated user.
+-   **Dual S3 Storage:**
+    -   **Full History:** Stores bare git repositories in `s3://bucket/git/`.
+    -   **Source Snapshot:** Stores the latest source code (files only) in `s3://bucket/source/` for easy browsing.
 -   **Incremental:** Uses efficient git fetching and S3 sync to only upload changes.
 -   **Secure:** All credentials are stored in GitHub Secrets.
+-   **High Performance:** Uses parallel processing to extract source code and upload to S3 concurrently.
 -   **Automated:** "Set-and-forget" daily schedule.
 
 ## Prerequisites & Configuration
@@ -41,27 +45,47 @@ Ensure your S3 bucket exists, is private, and that its region matches the value 
 
 ## Architecture
 
-1.  **Workflow Trigger:** Daily cron or manual dispatch.
+1.  **Workflow Trigger:** Scheduled cron job (every 2 days) or manual dispatch.
 2.  **Environment:** Runs on `ubuntu-latest`.
-3.  **Tooling:** Uses [Gickup](https://github.com/cooperspencer/gickup) to clone/mirror repositories.
+3.  **Tooling:**
+    -   **Gickup**: Mirrors repositories from GitHub to GitLab and a local staging directory.
+    -   **Custom Script**: `.github/scripts/s3_upload.sh` handles the S3 upload logic.
 4.  **Process:**
     *   Authenticates with GitHub using `GH_TOKEN`.
     *   Detects the GitHub username.
     *   Mirrors all repositories to the specified GitLab namespace.
-    *   Mirrors all repositories to a local directory.
-    *   Syncs the local directory to the S3 bucket using `aws s3 sync`.
+    *   Mirrors all repositories to a local directory (bare format).
+    *   **Parallel S3 Sync & Extraction:**
+        *   Uploads the bare git repositories to `s3://bucket/git/`.
+        *   Concurrently extracts the source code (shallow clone) from the local backups.
+        *   Uploads the extracted source code to `s3://bucket/source/`.
 
 ## Verification
 
 -   **GitLab:** Check your GitLab group. You should see all your GitHub repositories mirrored there.
--   **S3:** Browse your S3 bucket. You should see folders like `repo-name.git` containing the raw git data.
+-   **S3:** Browse your S3 bucket. You should see two main folders:
+    -   `git/`: Contains the bare git repositories (e.g., `repo-name.git`).
+    -   `source/`: Contains the readable source code folders (e.g., `repo-name`).
+        *   **Note:** Git LFS files (large binaries) are skipped during extraction to save space and avoid errors. They are stored as pointer files in the `source/` directory.
 
 ## Restoration
 
-To restore a repository from S3:
+You have two options for restoring from S3:
+
+### Option 1: Quick File Access (Source Code)
+If you just need to read a file or get the latest version of the code without git history:
+```bash
+# Download the specific file or directory
+aws s3 cp s3://your-bucket-name/source/repo-name/path/to/file .
+# OR sync the whole repo source
+aws s3 sync s3://your-bucket-name/source/repo-name ./repo-name
+```
+
+### Option 2: Full Repository Restoration (Git History)
+To restore the full repository with all history, branches, and tags:
 ```bash
 # Sync the bare repository from S3
-aws s3 sync s3://your-bucket-name/repo-name.git local-repo.git
+aws s3 sync s3://your-bucket-name/git/repo-name.git local-repo.git
 
 # Clone from the local bare repository
 git clone local-repo.git restored-repo
