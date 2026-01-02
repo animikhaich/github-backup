@@ -84,7 +84,7 @@ jobs:
           # PRD implies "folders named repo-name.git" in the bucket.
           # If we sync ./backup_stage/github/$GH_USER/ to s3://$S3_BUCKET/, we get repo.git folders at the root.
 
-          SOURCE_PATH="./backup_stage/github/$GH_USER"
+          SOURCE_PATH="./backup_stage/github.com/$GH_USER"
 
           if [ -d "$SOURCE_PATH" ]; then
             echo "Syncing from $SOURCE_PATH to s3://$S3_BUCKET/"
