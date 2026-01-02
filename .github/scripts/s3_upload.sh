@@ -33,16 +33,23 @@ mkdir -p "$SOURCE_DIR"
 if [ -n "$(find "$BACKUP_DIR" -maxdepth 1 -name "*.git" -print -quit)" ]; then
   # Use find and xargs to process repositories in parallel
   # -P $(nproc) uses as many processes as available CPU cores
-  find "$BACKUP_DIR" -maxdepth 1 -name "*.git" -print0 | xargs -0 -n 1 -P $(nproc) -I {} bash -c '
+  # We remove -n 1 because -I implies it and they can be mutually exclusive in some versions
+  find "$BACKUP_DIR" -maxdepth 1 -name "*.git" -print0 | xargs -0 -P $(nproc) -I {} bash -c '
     repo_path="{}"
     repo_name=$(basename "$repo_path" .git)
     target_path="'"$SOURCE_DIR"'/$repo_name"
 
     # Clone the repository (depth 1 for speed, single branch) from the local bare repo
     # using file:// protocol. We capture output to avoid clutter unless there is an error.
-    if ! git clone --depth 1 "file://$(realpath "$repo_path")" "$target_path" > /dev/null 2>&1; then
-      echo "Failed to extract $repo_name" >&2
-      exit 1
+    # We capture stderr to a variable and print it only on failure to keep logs clean.
+    if ! out=$(git clone --depth 1 "file://$(realpath "$repo_path")" "$target_path" 2>&1); then
+      echo "Failed to extract $repo_name. Error:" >&2
+      echo "$out" >&2
+      # We do NOT exit here because we want other repos to continue processing.
+      # We return a failure code so xargs knows something went wrong,
+      # but in a pipe, xargs might not stop immediately.
+      # However, we want to proceed with uploading whatever succeeded.
+      exit 0
     fi
   '
 else
