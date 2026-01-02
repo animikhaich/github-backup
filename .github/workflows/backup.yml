@@ -78,19 +78,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
           S3_BUCKET: ${{ vars.S3_BUCKET_NAME }}
-        run: |
-          # The local path with structured: true will be ./backup_stage/github/<user>/<repo>.git
-          # We want to sync the user folder to the bucket root or bucket/github/<user> depending on preference.
-          # PRD implies "folders named repo-name.git" in the bucket.
-          # If we sync ./backup_stage/github/$GH_USER/ to s3://$S3_BUCKET/, we get repo.git folders at the root.
-
-          SOURCE_PATH="./backup_stage/github.com/$GH_USER"
-
-          if [ -d "$SOURCE_PATH" ]; then
-            echo "Syncing from $SOURCE_PATH to s3://$S3_BUCKET/"
-            aws s3 sync "$SOURCE_PATH" "s3://$S3_BUCKET/" --no-progress --delete
-          else
-            echo "Directory $SOURCE_PATH does not exist. Listing backup_stage for debugging:"
-            ls -R backup_stage || echo "backup_stage not found"
-            exit 1
-          fi
+        run: .github/scripts/s3_upload.sh
