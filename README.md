@@ -1,5 +1,8 @@
 # GitHub Account Mirroring & Backup
 
+![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)
+![CI Status](https://github.com/animikhaich/github-backup/actions/workflows/backup.yml/badge.svg)
+
 This repository contains a GitHub Action workflow that automatically mirrors your entire GitHub account (all repositories, branches, tags) to:
 1.  **GitLab**: For active mirroring.
 2.  **AWS S3**: For cold storage/archival (both as bare git repositories and as extracted source code).
@@ -93,3 +96,13 @@ git clone local-repo.git restored-repo
 # OR create a mirror clone to preserve all refs
 git clone --mirror local-repo.git restored-repo-mirror.git
 ```
+
+## Support
+
+For support, please contact: `animikhaich@gmail.com`
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+Copyright (C) 2026 Animikh Aich
