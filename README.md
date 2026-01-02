@@ -66,6 +66,7 @@ Ensure your S3 bucket exists, is private, and that its region matches the value 
 -   **S3:** Browse your S3 bucket. You should see two main folders:
     -   `git/`: Contains the bare git repositories (e.g., `repo-name.git`).
     -   `source/`: Contains the readable source code folders (e.g., `repo-name`).
+        *   **Note:** Git LFS files (large binaries) are skipped during extraction to save space and avoid errors. They are stored as pointer files in the `source/` directory.
 
 ## Restoration
 

@@ -33,16 +33,19 @@ mkdir -p "$SOURCE_DIR"
 if [ -n "$(find "$BACKUP_DIR" -maxdepth 1 -name "*.git" -print -quit)" ]; then
   # Use find and xargs to process repositories in parallel
   # -P $(nproc) uses as many processes as available CPU cores
-  # We remove -n 1 because -I implies it and they can be mutually exclusive in some versions
+  # We use bash -c with arguments to avoid quoting issues.
+  # $0 is the script name (unused), $1 is repo_path, $2 is source_dir
+  export SOURCE_DIR
   find "$BACKUP_DIR" -maxdepth 1 -name "*.git" -print0 | xargs -0 -P $(nproc) -I {} bash -c '
-    repo_path="{}"
+    repo_path="$1"
+    source_dir="$2"
     repo_name=$(basename "$repo_path" .git)
-    target_path="'"$SOURCE_DIR"'/$repo_name"
+    target_path="$source_dir/$repo_name"
 
     # Clone the repository (depth 1 for speed, single branch) from the local bare repo
-    # using file:// protocol. We capture output to avoid clutter unless there is an error.
-    # We capture stderr to a variable and print it only on failure to keep logs clean.
-    if ! out=$(git clone --depth 1 "file://$(realpath "$repo_path")" "$target_path" 2>&1); then
+    # using file:// protocol.
+    # We use GIT_LFS_SKIP_SMUDGE=1 to prevent downloading large files (LFS)
+    if ! out=$(GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 "file://$(realpath "$repo_path")" "$target_path" 2>&1); then
       echo "Failed to extract $repo_name. Error:" >&2
       echo "$out" >&2
       # We do NOT exit here because we want other repos to continue processing.
@@ -51,7 +54,7 @@ if [ -n "$(find "$BACKUP_DIR" -maxdepth 1 -name "*.git" -print -quit)" ]; then
       # However, we want to proceed with uploading whatever succeeded.
       exit 0
     fi
-  '
+  ' _ "{}" "$SOURCE_DIR"
 else
   echo "No repositories found in $BACKUP_DIR"
 fi
@@ -74,5 +77,7 @@ if [ $FAIL -eq 0 ]; then
   echo "All uploads completed successfully."
 else
   echo "One or more uploads failed."
-  exit 1
+  # The user requested that the GitHub Actions job should not fail due to these errors.
+  # We log the failure but exit with success.
+  exit 0
 fi
