@@ -48,13 +48,9 @@ if [ -n "$(find "$BACKUP_DIR" -maxdepth 1 -name "*.git" -print -quit)" ]; then
     if ! out=$(GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 "file://$(realpath "$repo_path")" "$target_path" 2>&1); then
       echo "Failed to extract $repo_name. Error:" >&2
       echo "$out" >&2
-      # We do NOT exit here because we want other repos to continue processing.
-      # We return a failure code so xargs knows something went wrong,
-      # but in a pipe, xargs might not stop immediately.
-      # However, we want to proceed with uploading whatever succeeded.
-      exit 0
+      # Log the error but continue so other repos are still processed
     fi
-  ' _ "{}" "$SOURCE_DIR"
+  ' _ "{}" "$SOURCE_DIR" || true
 else
   echo "No repositories found in $BACKUP_DIR"
 fi

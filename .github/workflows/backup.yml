@@ -70,10 +70,9 @@ jobs:
           # Mask tokens in the log if we were to print this file (we won't print it)
 
       - name: Run Gickup
-        continue-on-error: true
         run: |
           # Redirect output to suppress repository names from public workflow logs
-          ./gickup gickup.yml > /dev/null 2>&1
+          ./gickup gickup.yml > /dev/null 2>&1 || true
 
       - name: Sync to AWS S3
         env:
