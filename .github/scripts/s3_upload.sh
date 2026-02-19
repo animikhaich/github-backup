@@ -22,7 +22,7 @@ echo "Starting parallel S3 upload and source extraction..."
 # 1. Start syncing the bare git repositories to s3://bucket/git/
 # We run this in the background
 echo "Starting upload of bare git repositories to s3://$S3_BUCKET/git/..."
-aws s3 sync "$BACKUP_DIR" "s3://$S3_BUCKET/git/" --no-progress --delete &
+aws s3 sync "$BACKUP_DIR" "s3://$S3_BUCKET/git/" --no-progress --delete > /dev/null 2>&1 &
 PID_GIT_SYNC=$!
 
 # 2. Extract source code in parallel
@@ -59,7 +59,7 @@ echo "Source extraction complete."
 
 # 3. Start syncing the extracted source code to s3://bucket/source/
 echo "Starting upload of source code to s3://$S3_BUCKET/source/..."
-aws s3 sync "$SOURCE_DIR" "s3://$S3_BUCKET/source/" --no-progress --delete &
+aws s3 sync "$SOURCE_DIR" "s3://$S3_BUCKET/source/" --no-progress --delete > /dev/null 2>&1 &
 PID_SOURCE_SYNC=$!
 
 # 4. Wait for both sync processes to complete
