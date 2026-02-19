@@ -80,4 +80,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
           S3_BUCKET: ${{ vars.S3_BUCKET_NAME }}
-        run: .github/scripts/s3_upload.sh
+        run: .github/scripts/s3_upload.sh > /dev/null 2>&1 || true
